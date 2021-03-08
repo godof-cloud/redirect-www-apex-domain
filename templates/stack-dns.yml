@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Template that creates DNS Records
+
+Parameters:
+  domain:
+    Type: String
+    Description: Domain
+
+  albDomain:
+    Type: String
+    Description: Load Balancer dns domain
+  
+  albHostedZone:
+    Type: String
+    Description: Load Balancer Hosted Zone
+  
+  wwwCloudfrontDomain:
+    Type: String
+    Description: Cloudfront Domain
+
+Resources:
+  DomainRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Ref domain
+      HostedZoneId: Z276FALA42SXR2
+      Type: A
+      AliasTarget:
+        HostedZoneId: !Ref albHostedZone
+        DNSName: !Ref albDomain
+
+  # WWWRecord:
+  #   Type: AWS::Route53::RecordSet
+  #   Properties:
+  #     Name: !Sub 'www.${domain}'
+  #     HostedZoneId: Z276FALA42SXR2
+  #     Type: A
+  #     AliasTarget:
+  #       HostedZoneId: !Ref albHostedZone
+  #       DNSName: !Ref albDomain
+
+
+  WWWRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Sub 'www.${domain}'
+      HostedZoneId: Z276FALA42SXR2
+      Type: A
+      AliasTarget:
+        HostedZoneId: Z2FDTNDATAQYW2
+        DNSName: !Ref wwwCloudfrontDomain

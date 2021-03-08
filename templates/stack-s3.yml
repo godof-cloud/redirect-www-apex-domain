@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Template that creates and configure an S3 Bucket to redirect the WWW domain to the Apex domain
+
+Parameters:
+  domain:
+    Type: String
+    Description: Domain
+  
+  enableHTTPS:
+    Type: String
+    Description: Flag to enable HTTPS connection
+    Default: false
+
+Conditions:
+  EnableHTTPS: !Equals ['true', !Ref enableHTTPS]
+  
+Resources:
+  WWWBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'www.${domain}'
+      WebsiteConfiguration:
+        RedirectAllRequestsTo:
+          HostName: !Ref domain
+          Protocol: !If [ EnableHTTPS, https, http ]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  
+Outputs:
+  WWWBucketName:
+    Description: WWW Bucket Name
+    Value: !Ref WWWBucket

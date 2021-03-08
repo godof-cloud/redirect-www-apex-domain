@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Master Cloudformation Template to create the resources to redirect from www to naked domain
+  
+Parameters:
+  prefix:
+    Type: String
+    Description: Prefix name for the resources
+    Default: www-redirect-apex
+  
+  resourcesBucket:
+    Type: String
+    Description: Bucket where all the templates are
+  
+  vpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC Id
+  
+  albSubnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Public subnets where the ALB will be attached (at least two)
+  
+  ec2Subnet:
+    Type: AWS::EC2::Subnet::Id
+    Description: Private subnet where the EC2 Instance will be created
+  
+  enableHTTPS:
+    Type: String
+    Description: Flag to enable HTTPS connection
+    Default: false
+    AllowedValues: [true, false]
+  
+  albCertificateARN:
+    Type: String
+    Description: Application Load Balancer Certificate
+    Default: 'arn:aws:acm:eu-central-1:541276568398:certificate/a0fa5d30-8491-4696-b1d8-fffd9ac9d1ac'
+  
+  cfCertificateARN:
+    Type: String
+    Description: Cloudfront Certificate ARN
+    Default: 'arn:aws:acm:us-east-1:541276568398:certificate/0f51ed8c-b1f9-4940-8972-e61b71515d02'
+  
+  domain:
+    Type: String
+    Description: Registrated Domain
+  
+Resources:  
+  ALBStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${resourcesBucket}.s3.amazonaws.com/templates/stack-alb.yml'
+      Parameters:
+        prefix: !Ref prefix
+        vpcId: !Ref vpcId
+        subnets: !Join [ ',', !Ref albSubnets ]
+        enableHTTPS: !Ref enableHTTPS
+        albCertificateARN: !Ref albCertificateARN
+        
+  EC2Stack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${resourcesBucket}.s3.amazonaws.com/templates/stack-ec2.yml'
+      Parameters:
+        prefix: !Ref prefix
+        vpcId: !Ref vpcId
+        subnetId: !Ref ec2Subnet
+        albSGId: !GetAtt ALBStack.Outputs.ALBSecurityGroupID
+        albListenerArn: !GetAtt ALBStack.Outputs.ALBListenerArn
+  
+  S3Stack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${resourcesBucket}.s3.amazonaws.com/templates/stack-s3.yml'
+      Parameters:
+        domain: !Ref domain
+        enableHTTPS: !Ref enableHTTPS
+  
+  CloudfrontStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${resourcesBucket}.s3.amazonaws.com/templates/stack-cloudfront.yml'
+      Parameters:
+        domain: !Ref domain
+        wwwBucket: !GetAtt S3Stack.Outputs.WWWBucketName
+        cfCertificateARN: !Ref cfCertificateARN
+
+  DNSStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub 'https://${resourcesBucket}.s3.amazonaws.com/templates/stack-dns.yml'
+      Parameters:
+        domain: !Ref domain
+        albDomain: !GetAtt ALBStack.Outputs.ALBUrl
+        albHostedZone: !GetAtt ALBStack.Outputs.ALBHostedZone
+        wwwCloudfrontDomain: !GetAtt CloudfrontStack.Outputs.CloudfrontDomain

@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Cloudformation Template to create the Load Balancer
+
+Parameters:
+  prefix:
+    Type: String
+    Description: Prefix name for the resources
+    Default: www-redirect-apex
+  
+  vpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC Id
+
+  subnets:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Public subnets where the ALB will be attached
+  
+  enableHTTPS:
+    Type: String
+    Description: Flag to enable HTTPS connection
+    Default: false
+  
+  albCertificateARN:
+    Type: String
+    Description: Application Load Balancer Certificate ARN
+    Default: ''
+  
+Conditions:
+  EnableHTTPS: !Equals ['true', !Ref enableHTTPS]
+
+Resources:
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Application Load Balancer Security Group
+      VpcId: !Ref vpcId
+      SecurityGroupIngress:
+        - Description: Allow access to the ALB on port 80
+          IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - Description: Allow access to the ALB on port 443
+          IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub '${prefix}-alb-sg'
+
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: 'internet-facing'
+      Name: !Sub '${prefix}-alb'      
+      Subnets: !Ref subnets
+      SecurityGroups: 
+        - !Ref ALBSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub '${prefix}-alb'
+  
+  ALBDefaultTG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 60
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 5
+      VpcId: !Ref vpcId
+      Tags:
+      - Key: Name
+        Value: !Sub '${prefix}-alb-default-tg'
+  
+  ALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref ALBDefaultTG
+      LoadBalancerArn: !Ref ALB
+      Port: !If [ EnableHTTPS, 443, 80 ]
+      Protocol: !If [ EnableHTTPS, HTTPS, HTTP ]     
+      Certificates:
+        - CertificateArn: !If [ EnableHTTPS, !Ref albCertificateARN, !Ref 'AWS::NoValue' ] 
+
+Outputs:
+  ALBSecurityGroupID:
+    Description: Application Load Balancer Security Group ID
+    Value: !Ref ALBSecurityGroup
+
+  ALBUrl:
+    Description: Application Load Balancer URL
+    Value: !GetAtt ALB.DNSName
+  
+  ALBListenerArn:
+    Description: Application Load Balancer Listener ARN
+    Value: !Ref ALBListener
+  
+  ALBHostedZone:
+    Description: Hosted Zone associated with the Application Load Balancer
+    Value: !GetAtt ALB.CanonicalHostedZoneID
