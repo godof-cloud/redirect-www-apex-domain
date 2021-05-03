@@ -82,13 +82,27 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
-      - Type: forward
-        TargetGroupArn: !Ref ALBDefaultTG
+        - Type: forward
+          TargetGroupArn: !Ref ALBDefaultTG
       LoadBalancerArn: !Ref ALB
       Port: !If [ EnableHTTPS, 443, 80 ]
       Protocol: !If [ EnableHTTPS, HTTPS, HTTP ]     
       Certificates:
         - CertificateArn: !If [ EnableHTTPS, !Ref albCertificateARN, !Ref 'AWS::NoValue' ] 
+  
+  ALBHTTPListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Condition: EnableHTTPS
+    Properties:
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Port: 443
+            Protocol: HTTPS
+            StatusCode: HTTP_301
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: HTTP
 
 Outputs:
   ALBSecurityGroupID:
