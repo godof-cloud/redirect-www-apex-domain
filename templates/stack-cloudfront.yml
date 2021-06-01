@@ -6,19 +6,11 @@ Parameters:
   wwwBucket:
     Type: String 
     Description: WWW Bucket Name
-  
-  enableHTTPS:
-    Type: String
-    Description: Flag to enable HTTPS connection
-    Default: false
 
   cfCertificateARN:
     Type: String
     Description: Cloudfront Certificate ARN
     Default: ''
-
-Conditions:
-  EnableHTTPS: !Equals ['true', !Ref enableHTTPS]
 
 Resources:
   WWWCloudfront:
@@ -27,7 +19,7 @@ Resources:
       DistributionConfig:
         Comment: Cloudfront distribution for WWW Domain
         Aliases: 
-          - !If [ EnableHTTPS, !Sub 'www.${domain}', !Ref 'AWS::NoValue' ] 
+          - !Sub 'www.${domain}'
         Origins:
           - Id: WWWOrigin
             DomainName: !Sub '${wwwBucket}.s3-website.${AWS::Region}.amazonaws.com'
@@ -49,12 +41,9 @@ Resources:
               Forward: none
           ViewerProtocolPolicy: allow-all
         ViewerCertificate:
-          !If 
-            - EnableHTTPS
-            - AcmCertificateArn: !Ref cfCertificateARN
-              SslSupportMethod: sni-only
-              MinimumProtocolVersion: TLSv1.1_2016
-            - !Ref 'AWS::NoValue'
+          AcmCertificateArn: !Ref cfCertificateARN
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.1_2016
           
 
 Outputs:

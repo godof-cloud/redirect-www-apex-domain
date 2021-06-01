@@ -7,14 +7,6 @@ Parameters:
     Type: String
     Description: Domain
   
-  enableHTTPS:
-    Type: String
-    Description: Flag to enable HTTPS connection
-    Default: false
-
-Conditions:
-  EnableHTTPS: !Equals ['true', !Ref enableHTTPS]
-  
 Resources:
   WWWBucket:
     Type: AWS::S3::Bucket
@@ -23,7 +15,7 @@ Resources:
       WebsiteConfiguration:
         RedirectAllRequestsTo:
           HostName: !Ref domain
-          Protocol: !If [ EnableHTTPS, https, http ]
+          Protocol: https
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true

@@ -16,19 +16,11 @@ Parameters:
     Type: List<AWS::EC2::Subnet::Id>
     Description: Public subnets where the ALB will be attached
   
-  enableHTTPS:
-    Type: String
-    Description: Flag to enable HTTPS connection
-    Default: false
-  
   albCertificateARN:
     Type: String
     Description: Application Load Balancer Certificate ARN
     Default: ''
   
-Conditions:
-  EnableHTTPS: !Equals ['true', !Ref enableHTTPS]
-
 Resources:
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -65,7 +57,7 @@ Resources:
   ALBDefaultTG:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      HealthCheckIntervalSeconds: 60
+      HealthCheckIntervalSeconds: 15
       HealthCheckPath: /
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 10
@@ -85,14 +77,13 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref ALBDefaultTG
       LoadBalancerArn: !Ref ALB
-      Port: !If [ EnableHTTPS, 443, 80 ]
-      Protocol: !If [ EnableHTTPS, HTTPS, HTTP ]     
+      Port: 443
+      Protocol: HTTPS  
       Certificates:
-        - CertificateArn: !If [ EnableHTTPS, !Ref albCertificateARN, !Ref 'AWS::NoValue' ] 
+        - CertificateArn: !Ref albCertificateARN
   
-  ALBHTTPListener:
+  ALBHTTPSListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
-    Condition: EnableHTTPS
     Properties:
       DefaultActions:
         - Type: redirect

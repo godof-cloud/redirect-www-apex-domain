@@ -24,25 +24,22 @@ Parameters:
     Type: AWS::EC2::Subnet::Id
     Description: Private subnet where the EC2 Instance will be created
   
-  enableHTTPS:
-    Type: String
-    Description: Flag to enable HTTPS connection
-    Default: false
-    AllowedValues: [true, false]
-  
   albCertificateARN:
     Type: String
     Description: Application Load Balancer Certificate
-    Default: 'arn:aws:acm:eu-central-1:541276568398:certificate/a0fa5d30-8491-4696-b1d8-fffd9ac9d1ac'
   
   cfCertificateARN:
     Type: String
     Description: Cloudfront Certificate ARN
-    Default: 'arn:aws:acm:us-east-1:541276568398:certificate/0f51ed8c-b1f9-4940-8972-e61b71515d02'
   
   domain:
     Type: String
     Description: Registrated Domain
+    Default: barakajob.com
+  
+  domainHostedZone:
+    Type: String
+    Description: Domain Hosted Zone
   
 Resources:  
   ALBStack:
@@ -53,7 +50,6 @@ Resources:
         prefix: !Ref prefix
         vpcId: !Ref vpcId
         subnets: !Join [ ',', !Ref albSubnets ]
-        enableHTTPS: !Ref enableHTTPS
         albCertificateARN: !Ref albCertificateARN
         
   EC2Stack:
@@ -73,7 +69,6 @@ Resources:
       TemplateURL: !Sub 'https://${resourcesBucket}.s3.amazonaws.com/templates/stack-s3.yml'
       Parameters:
         domain: !Ref domain
-        enableHTTPS: !Ref enableHTTPS
   
   CloudfrontStack:
     Type: AWS::CloudFormation::Stack
@@ -90,6 +85,7 @@ Resources:
       TemplateURL: !Sub 'https://${resourcesBucket}.s3.amazonaws.com/templates/stack-dns.yml'
       Parameters:
         domain: !Ref domain
+        domainHostedZone: !Ref domainHostedZone
         albDomain: !GetAtt ALBStack.Outputs.ALBUrl
         albHostedZone: !GetAtt ALBStack.Outputs.ALBHostedZone
         wwwCloudfrontDomain: !GetAtt CloudfrontStack.Outputs.CloudfrontDomain

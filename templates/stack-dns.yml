@@ -6,6 +6,10 @@ Parameters:
   domain:
     Type: String
     Description: Domain
+  
+  domainHostedZone:
+    Type: String
+    Description: Domain Hosted Zone
 
   albDomain:
     Type: String
@@ -24,28 +28,17 @@ Resources:
     Type: AWS::Route53::RecordSet
     Properties:
       Name: !Ref domain
-      HostedZoneId: Z276FALA42SXR2
+      HostedZoneId: !Ref domainHostedZone
       Type: A
       AliasTarget:
         HostedZoneId: !Ref albHostedZone
         DNSName: !Ref albDomain
 
-  # WWWRecord:
-  #   Type: AWS::Route53::RecordSet
-  #   Properties:
-  #     Name: !Sub 'www.${domain}'
-  #     HostedZoneId: Z276FALA42SXR2
-  #     Type: A
-  #     AliasTarget:
-  #       HostedZoneId: !Ref albHostedZone
-  #       DNSName: !Ref albDomain
-
-
   WWWRecord:
     Type: AWS::Route53::RecordSet
     Properties:
       Name: !Sub 'www.${domain}'
-      HostedZoneId: Z276FALA42SXR2
+      HostedZoneId: !Ref domainHostedZone
       Type: A
       AliasTarget:
         HostedZoneId: Z2FDTNDATAQYW2
